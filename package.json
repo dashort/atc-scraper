@@ -1,18 +1,24 @@
-{
-  "name": "atc-scraper",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-  "axios": "0.27.2",
-  "axios-cookiejar-support": "^1.0.1",
-  "body-parser": "^1.20.0",
-  "cheerio": "^1.0.0-rc.12",
-  "express": "^4.18.2",
-  "qs": "^6.11.0",
-  "tough-cookie": "^4.1.3"
+import json
+import os
+
+# Define the updated package.json content with Puppeteer
+package_json = {
+    "name": "atc-scraper-puppeteer",
+    "version": "1.0.0",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "body-parser": "^1.20.2",
+        "puppeteer": "^21.3.8"
+    }
 }
 
-}
+# Write package.json to the same directory for user download
+package_json_path = "/mnt/data/package.json"
+with open(package_json_path, "w") as f:
+    json.dump(package_json, f, indent=2)
+
+package_json_path
