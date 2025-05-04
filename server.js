@@ -1,4 +1,4 @@
-// server.js (Puppeteer version with full CORS fix)
+// server.js (Puppeteer version with full CORS fix - temporarily allow all origins)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer');
@@ -7,9 +7,9 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// CORS setup to allow WordPress domain
+// CORS setup - temporarily allow all origins for testing
 const corsOptions = {
-  origin: 'https://absecllc.com',
+  origin: true, // Reflect origin header in response
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type']
 };
