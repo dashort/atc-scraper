@@ -1,9 +1,8 @@
-# Dockerfile for Railway deployment with Puppeteer support
+# Optimized Dockerfile for Railway with Puppeteer
 FROM node:18-slim
 
-# Install Puppeteer dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
+# Install only essential Puppeteer dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-liberation \
     libappindicator3-1 \
@@ -22,14 +21,12 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     libgbm1 \
     libgtk-3-0 \
-    --no-install-recommends \
- && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci --omit=dev
 
 COPY . .
 
