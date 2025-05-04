@@ -1,4 +1,4 @@
-// server.js (Puppeteer version with CORS fix)
+// server.js (Puppeteer version with full CORS fix)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer');
@@ -8,11 +8,14 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 // CORS setup to allow WordPress domain
-app.use(cors({
+const corsOptions = {
   origin: 'https://absecllc.com',
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type']
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('/search', cors(corsOptions)); // Explicit preflight handler
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
