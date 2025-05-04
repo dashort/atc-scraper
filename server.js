@@ -15,7 +15,12 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Global preflight handler for all routes
+app.options('*', (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.sendStatus(200);
+}); // Global preflight handler for all routes
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
