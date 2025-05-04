@@ -15,7 +15,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('/search', cors(corsOptions)); // Explicit preflight handler
+app.options('*', cors(corsOptions)); // Allow preflight globally
+
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
