@@ -4,11 +4,11 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const bodyParser = require('body-parser');
 const qs = require('qs');
-const { wrapper } = require('axios-cookiejar-support');
 const { CookieJar } = require('tough-cookie');
+const { default: axiosCookieJarSupport } = require('axios-cookiejar-support');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -20,6 +20,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check route
+app.get('/', (req, res) => {
+  res.send('ATC Scraper is live.');
+});
+
 const targetUrl = 'https://laatcabc.atc.la.gov/laatcprod/pub/Default.aspx?PossePresentation=ResponsibleVendorLicenseSearch';
 
 app.post('/search', async (req, res) => {
@@ -27,10 +32,11 @@ app.post('/search', async (req, res) => {
 
   try {
     const jar = new CookieJar();
-    const session = wrapper(axios.create({ jar }));
+    const client = axios.create({ jar });
+    axiosCookieJarSupport(client);
 
     // Initial GET request to fetch __VIEWSTATE and other hidden fields
-    const initialRes = await session.get(targetUrl);
+    const initialRes = await client.get(targetUrl);
     const $ = cheerio.load(initialRes.data);
 
     const viewstate = $('#__VIEWSTATE').val();
@@ -51,7 +57,7 @@ app.post('/search', async (req, res) => {
     };
 
     // POST request to submit the search
-    const response = await session.post(targetUrl, qs.stringify(formData), {
+    const response = await client.post(targetUrl, qs.stringify(formData), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -73,5 +79,5 @@ app.post('/search', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
