@@ -1,22 +1,21 @@
-// server.js (Puppeteer version)
+// server.js (Puppeteer version with CORS fix)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
-const cors = require('cors');
+// CORS setup to allow WordPress domain
 app.use(cors({
   origin: 'https://absecllc.com',
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type']
 }));
 
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
   res.send('ATC Scraper with Puppeteer is live.');
