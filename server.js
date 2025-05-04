@@ -35,26 +35,24 @@ app.post('/search', async (req, res) => {
     const client = axios.create({ jar });
     axiosCookieJarSupport(client);
 
-    // Initial GET request to fetch __VIEWSTATE and other hidden fields
+    // Initial GET request to fetch the page
     const initialRes = await client.get(targetUrl);
     const $ = cheerio.load(initialRes.data);
 
-    const viewstate = $('#__VIEWSTATE').val();
-    const viewstateGenerator = $('#__VIEWSTATEGENERATOR').val();
-    const eventValidation = $('#__EVENTVALIDATION').val();
+    // Grab all hidden input fields
+    const formData = {};
+    $('input[type="hidden"]').each((i, el) => {
+      const name = $(el).attr('name');
+      const value = $(el).val();
+      if (name) formData[name] = value || '';
+    });
 
-    const formData = {
-      '__VIEWSTATE': viewstate,
-      '__VIEWSTATEGENERATOR': viewstateGenerator,
-      '__EVENTVALIDATION': eventValidation,
-      '__EVENTTARGET': '',
-      '__EVENTARGUMENT': '',
-      'SearchBy': 'Server',
-      'txtServerLastName': lastName,
-      'txtServerSSN': ssn,
-      'txtServerDOB': dob,
-      'btnSearch': 'Search'
-    };
+    // Manually add or override necessary search fields
+    formData['SearchBy'] = 'Server';
+    formData['txtServerLastName'] = lastName;
+    formData['txtServerSSN'] = ssn;
+    formData['txtServerDOB'] = dob;
+    formData['btnSearch'] = 'Search';
 
     // POST request to submit the search
     const response = await client.post(targetUrl, qs.stringify(formData), {
