@@ -9,14 +9,12 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Allow CORS for frontend testing
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
-// Health check route
 app.get('/', (req, res) => {
   res.send('ATC Scraper with Puppeteer is live.');
 });
@@ -37,18 +35,15 @@ app.post('/search', async (req, res) => {
     const page = await browser.newPage();
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
-    // Fill in form fields
     await page.type('input[name="txtServerLastName"]', lastName);
     await page.type('input[name="txtServerSSN"]', ssn);
     await page.type('input[name="txtServerDOB"]', dob);
 
-    // Submit the form
     await Promise.all([
       page.click('input[name="btnSearch"]'),
       page.waitForNavigation({ waitUntil: 'domcontentloaded' })
     ]);
 
-    // Check for results table
     const tableHTML = await page.$eval('#grdResults', el => el.outerHTML).catch(() => null);
 
     if (!tableHTML) {
