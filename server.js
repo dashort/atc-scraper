@@ -1,11 +1,7 @@
-// server.js
+// server.js (Puppeteer version)
 const express = require('express');
-const axios = require('axios');
-const cheerio = require('cheerio');
 const bodyParser = require('body-parser');
-const qs = require('qs');
-const { CookieJar } = require('tough-cookie');
-const { default: axiosCookieJarSupport } = require('axios-cookiejar-support');
+const puppeteer = require('puppeteer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +18,7 @@ app.use((req, res, next) => {
 
 // Health check route
 app.get('/', (req, res) => {
-  res.send('ATC Scraper is live.');
+  res.send('ATC Scraper with Puppeteer is live.');
 });
 
 const targetUrl = 'https://laatcabc.atc.la.gov/laatcprod/pub/Default.aspx?PossePresentation=ResponsibleVendorLicenseSearch';
@@ -30,49 +26,41 @@ const targetUrl = 'https://laatcabc.atc.la.gov/laatcprod/pub/Default.aspx?PosseP
 app.post('/search', async (req, res) => {
   const { lastName, ssn, dob } = req.body;
 
+  if (!lastName || !ssn || !dob) {
+    return res.status(400).json({ error: 'Missing required fields.' });
+  }
+
+  let browser;
+
   try {
-    const jar = new CookieJar();
-    const client = axios.create({ jar });
-    axiosCookieJarSupport(client);
+    browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
-    // Initial GET request to fetch the page
-    const initialRes = await client.get(targetUrl);
-    const $ = cheerio.load(initialRes.data);
+    // Fill in form fields
+    await page.type('input[name="txtServerLastName"]', lastName);
+    await page.type('input[name="txtServerSSN"]', ssn);
+    await page.type('input[name="txtServerDOB"]', dob);
 
-    // Grab all input fields (not just hidden)
-    const formData = {};
-    $('input').each((i, el) => {
-      const name = $(el).attr('name');
-      const value = $(el).val();
-      if (name) formData[name] = value || '';
-    });
+    // Submit the form
+    await Promise.all([
+      page.click('input[name="btnSearch"]'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' })
+    ]);
 
-    // Manually add or override necessary search fields
-    formData['SearchBy'] = 'Server';
-    formData['txtServerLastName'] = lastName;
-    formData['txtServerSSN'] = ssn;
-    formData['txtServerDOB'] = dob;
-    formData['btnSearch'] = 'Search';
+    // Check for results table
+    const tableHTML = await page.$eval('#grdResults', el => el.outerHTML).catch(() => null);
 
-    // POST request to submit the search
-    const response = await client.post(targetUrl, qs.stringify(formData), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
-
-    const $$ = cheerio.load(response.data);
-    const resultsTable = $$('#grdResults').html();
-
-    if (!resultsTable) {
-      console.log('Raw HTML output for debugging:', response.data);
-      return res.status(200).json({ message: 'No results found or parsing failed.' });
+    if (!tableHTML) {
+      return res.status(200).json({ message: 'No results found or table missing.' });
     }
 
-    res.status(200).send(resultsTable);
+    res.status(200).send(tableHTML);
   } catch (error) {
-    console.error('Error during scraping:', error);
+    console.error('Puppeteer scraping error:', error);
     res.status(500).json({ error: 'Scraping failed. Try again later.' });
+  } finally {
+    if (browser) await browser.close();
   }
 });
 
