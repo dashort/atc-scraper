@@ -15,8 +15,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Allow preflight globally
-
+app.options('*', cors(corsOptions)); // Global preflight handler for all routes
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -28,6 +27,8 @@ app.get('/', (req, res) => {
 const targetUrl = 'https://laatcabc.atc.la.gov/laatcprod/pub/Default.aspx?PossePresentation=ResponsibleVendorLicenseSearch';
 
 app.post('/search', async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   const { lastName, ssn, dob } = req.body;
 
   if (!lastName || !ssn || !dob) {
