@@ -5,6 +5,14 @@ const puppeteer = require('puppeteer');
 const cors = require('cors');
 
 const app = express();
+
+// Global CORS headers for all requests
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  next();
+});
 const PORT = process.env.PORT || 8080;
 
 // CORS setup - temporarily allow all origins for testing
