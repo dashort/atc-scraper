@@ -39,9 +39,9 @@ app.post('/search', async (req, res) => {
     const initialRes = await client.get(targetUrl);
     const $ = cheerio.load(initialRes.data);
 
-    // Grab all hidden input fields
+    // Grab all input fields (not just hidden)
     const formData = {};
-    $('input[type="hidden"]').each((i, el) => {
+    $('input').each((i, el) => {
       const name = $(el).attr('name');
       const value = $(el).val();
       if (name) formData[name] = value || '';
