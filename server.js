@@ -1,4 +1,4 @@
-// server.js (debug HTML + screenshot added)
+// server.js (debug inputs + HTML + screenshot)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -58,6 +58,9 @@ app.post('/search', async (req, res) => {
     const pageContent = await page.content();
     console.log('PAGE HTML:\n', pageContent);
     await page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
+
+    const allInputs = await page.$$eval('input', els => els.map(el => el.name));
+    console.log('INPUT NAMES FOUND:', allInputs);
 
     await page.waitForSelector('input[name="txtServerLastName"]', { timeout: 10000 });
     await page.type('input[name="txtServerLastName"]', lastName);
