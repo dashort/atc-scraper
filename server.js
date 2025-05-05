@@ -1,4 +1,4 @@
-// server.js (input selectors now dynamic with ^ wildcard)
+// server.js (improved wait for results table)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -82,7 +82,8 @@ app.post('/search', async (req, res) => {
       document.querySelector('#cphTopBand_ctl03_PerformSearch')?.click();
     });
 
-    await page.waitForTimeout(3000); // wait for results to populate
+    // Wait for the results table instead of using timeout
+    await page.waitForSelector('#grdResults', { timeout: 10000 });
 
     const tableHTML = await page.$eval('#grdResults', el => el.outerHTML).catch(() => null);
     if (!tableHTML) {
