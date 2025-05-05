@@ -1,4 +1,4 @@
-// server.js (improved wait for results table)
+// server.js (flexible wait for result container)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -54,17 +54,14 @@ app.post('/search', async (req, res) => {
     const page = await browser.newPage();
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
-    // Wait for a visible label to confirm JS-rendered content
     await page.waitForFunction(() => {
       return document.body.innerText.includes("Search for Responsible Vendor Licenses");
     }, { timeout: 10000 });
 
-    // Take screenshot and HTML
     const pageContent = await page.content();
     console.log('PAGE HTML:\n', pageContent);
     await page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
 
-    // Get field handles using partial name match
     const lastNameInput = await page.$('input[name^="LastName_"]');
     const ssnInput = await page.$('input[name^="Last4SSN_"]');
     const dobInput = await page.$('input[name^="DateOfBirth_"]');
@@ -77,20 +74,19 @@ app.post('/search', async (req, res) => {
     await ssnInput.type(ssn);
     await dobInput.type(dob);
 
-    // Click the search button by ID
     await page.evaluate(() => {
       document.querySelector('#cphTopBand_ctl03_PerformSearch')?.click();
     });
 
-    // Wait for the results table instead of using timeout
-    await page.waitForSelector('#grdResults', { timeout: 10000 });
+    // Wait for results in more flexible containers
+    await page.waitForSelector('table.possedetail, .datazone', { timeout: 10000 });
 
-    const tableHTML = await page.$eval('#grdResults', el => el.outerHTML).catch(() => null);
-    if (!tableHTML) {
-      return res.status(200).json({ message: 'No results found or table missing.' });
+    const html = await page.$eval('.datazone', el => el.innerHTML).catch(() => null);
+    if (!html) {
+      return res.status(200).json({ message: 'No results found or container missing.' });
     }
 
-    res.status(200).send(tableHTML);
+    res.status(200).send(html);
   } catch (error) {
     console.error('Puppeteer scraping error:', error);
     res.status(500).json({ error: 'Scraping failed. Try again later.' });
