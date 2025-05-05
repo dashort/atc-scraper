@@ -72,7 +72,7 @@ app.post('/search', async (req, res) => {
     await dobInput.type(dob);
 
     await page.evaluate(() => {
-      document.querySelector('#cphTopBand_ctl03_PerformSearch')?.dispatchEvent(new Event('click', { bubbles: true }));
+      document.querySelector('form#aspnetForm')?.submit();
     });
 
     // Smart wait for .datazone content to change
