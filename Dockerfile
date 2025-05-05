@@ -1,9 +1,10 @@
-# Optimized Dockerfile for Railway with Puppeteer
+# Optimized Dockerfile for Railway using puppeteer-core and system Chromium
 FROM node:18-slim
 
-# Install only essential Puppeteer dependencies
+# Install Chromium and essential dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    wget \
     fonts-liberation \
     libappindicator3-1 \
     libasound2 \
@@ -21,12 +22,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xdg-utils \
     libgbm1 \
     libgtk-3-0 \
+    chromium \
  && rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install puppeteer-core@22.8.2 && npm ci --omit=dev
 
 COPY . .
 

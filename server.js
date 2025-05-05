@@ -1,40 +1,33 @@
-// server.js (Puppeteer version with full CORS fix - temporarily allow all origins)
+// server.js (Puppeteer-Core with system Chromium + full CORS)
 const express = require('express');
 const bodyParser = require('body-parser');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const cors = require('cors');
 
 const app = express();
+const PORT = process.env.PORT || 8080;
 
-// Global CORS headers for all requests
+// CORS headers for all requests
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   next();
 });
-const PORT = process.env.PORT || 8080;
 
-// CORS setup - temporarily allow all origins for testing
-const corsOptions = {
-  origin: true, // Reflect origin header in response
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
-};
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-app.use(cors(corsOptions));
 app.options('*', (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.sendStatus(200);
-}); // Global preflight handler for all routes
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+});
 
 app.get('/', (req, res) => {
-  res.send('ATC Scraper with Puppeteer is live.');
+  res.send('ATC Scraper with Puppeteer-Core and Chromium is live.');
 });
 
 const targetUrl = 'https://laatcabc.atc.la.gov/laatcprod/pub/Default.aspx?PossePresentation=ResponsibleVendorLicenseSearch';
@@ -42,16 +35,20 @@ const targetUrl = 'https://laatcabc.atc.la.gov/laatcprod/pub/Default.aspx?PosseP
 app.post('/search', async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  const { lastName, ssn, dob } = req.body;
 
+  const { lastName, ssn, dob } = req.body;
   if (!lastName || !ssn || !dob) {
     return res.status(400).json({ error: 'Missing required fields.' });
   }
 
   let browser;
-
   try {
-    browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+    browser = await puppeteer.launch({
+      headless: 'new',
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
     const page = await browser.newPage();
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
@@ -65,7 +62,6 @@ app.post('/search', async (req, res) => {
     ]);
 
     const tableHTML = await page.$eval('#grdResults', el => el.outerHTML).catch(() => null);
-
     if (!tableHTML) {
       return res.status(200).json({ message: 'No results found or table missing.' });
     }
