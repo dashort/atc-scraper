@@ -66,12 +66,13 @@ app.post('/search', async (req, res) => {
       throw new Error('One or more input fields not found.');
     }
 
+    console.log('Typing values:', { lastName, ssn, dob });
     await lastNameInput.type(lastName);
     await ssnInput.type(ssn);
     await dobInput.type(dob);
 
     await page.evaluate(() => {
-      document.querySelector('#cphTopBand_ctl03_PerformSearch')?.click();
+      document.querySelector('#cphTopBand_ctl03_PerformSearch')?.dispatchEvent(new Event('click', { bubbles: true }));
     });
 
     // Smart wait for .datazone content to change
@@ -85,6 +86,7 @@ app.post('/search', async (req, res) => {
 
     const html = await page.$eval('.datazone', el => el.innerHTML).catch(() => null);
     const text = await page.$eval('.datazone', el => el.innerText).catch(() => null);
+    console.log('Datazone contents:', text);
 
     if (!html) {
       return res.status(200).json({ status: 'error', message: 'No results container found.' });
