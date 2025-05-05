@@ -49,7 +49,7 @@ app.post('/search', async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
 
     // Grab all form values
     const formData = await page.evaluate(() => {
