@@ -77,8 +77,11 @@ app.post('/search', async (req, res) => {
     // Smart wait for .datazone content to change
     await page.waitForFunction(() => {
       const dz = document.querySelector('.datazone');
-      return dz && (dz.innerText.includes('No issued licenses were found') || dz.innerText.includes('RV licenses'));
-    }, { timeout: 15000 });
+      return dz && (
+        dz.innerText.includes('No issued licenses were found') ||
+        dz.innerText.includes('License Number:')
+      );
+    }, { timeout: 20000 });
 
     const html = await page.$eval('.datazone', el => el.innerHTML).catch(() => null);
     const text = await page.$eval('.datazone', el => el.innerText).catch(() => null);
