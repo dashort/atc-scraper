@@ -1,4 +1,4 @@
-// server.js (simulated DOM interaction version)
+// server.js (updated with extended waits and network stability handling)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -80,11 +80,14 @@ app.post('/search', async (req, res) => {
       btn.click();
     });
 
-    // Wait for result or no-results
+    // Wait for navigation and content update
+    await page.waitForTimeout(500);
+    await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
+
     await page.waitForFunction(() => {
       const dz = document.querySelector('.datazone');
-      return dz && (dz.innerText.includes('No issued licenses were found') || dz.innerText.includes('License Number:'));
-    }, { timeout: 20000 });
+      return dz && dz.innerText.trim().length > 0;
+    }, { timeout: 10000 });
 
     const text = await page.$eval('.datazone', el => el.innerText).catch(() => null);
     console.log('Datazone contents:', text);
