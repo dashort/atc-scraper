@@ -1,4 +1,4 @@
-// server.js (debug inputs + HTML + screenshot)
+// server.js (wait for label text, then log inputs again)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -54,34 +54,21 @@ app.post('/search', async (req, res) => {
     const page = await browser.newPage();
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
-    // Debug output
+    // Wait for a visible label to confirm JS-rendered content
+    await page.waitForFunction(() => {
+      return document.body.innerText.includes("Search for Responsible Vendor Licenses");
+    }, { timeout: 10000 });
+
+    // Take screenshot and HTML
     const pageContent = await page.content();
     console.log('PAGE HTML:\n', pageContent);
     await page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
 
+    // Re-log input fields after JS content is loaded
     const allInputs = await page.$$eval('input', els => els.map(el => el.name));
-    console.log('INPUT NAMES FOUND:', allInputs);
+    console.log('INPUT NAMES FOUND (after load):', allInputs);
 
-    await page.waitForSelector('input[name="txtServerLastName"]', { timeout: 10000 });
-    await page.type('input[name="txtServerLastName"]', lastName);
-
-    await page.waitForSelector('input[name="txtServerSSN"]', { timeout: 10000 });
-    await page.type('input[name="txtServerSSN"]', ssn);
-
-    await page.waitForSelector('input[name="txtServerDOB"]', { timeout: 10000 });
-    await page.type('input[name="txtServerDOB"]', dob);
-
-    await Promise.all([
-      page.click('input[name="btnSearch"]'),
-      page.waitForNavigation({ waitUntil: 'domcontentloaded' })
-    ]);
-
-    const tableHTML = await page.$eval('#grdResults', el => el.outerHTML).catch(() => null);
-    if (!tableHTML) {
-      return res.status(200).json({ message: 'No results found or table missing.' });
-    }
-
-    res.status(200).send(tableHTML);
+    res.status(200).json({ message: 'Inputs logged. Check logs for field names.' });
   } catch (error) {
     console.error('Puppeteer scraping error:', error);
     res.status(500).json({ error: 'Scraping failed. Try again later.' });
