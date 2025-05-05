@@ -1,4 +1,4 @@
-// server.js (wait for label text, then log inputs again)
+// server.js (input selectors now dynamic with ^ wildcard)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -64,11 +64,32 @@ app.post('/search', async (req, res) => {
     console.log('PAGE HTML:\n', pageContent);
     await page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
 
-    // Re-log input fields after JS content is loaded
-    const allInputs = await page.$$eval('input', els => els.map(el => el.name));
-    console.log('INPUT NAMES FOUND (after load):', allInputs);
+    // Get field handles using partial name match
+    const lastNameInput = await page.$('input[name^="LastName_"]');
+    const ssnInput = await page.$('input[name^="Last4SSN_"]');
+    const dobInput = await page.$('input[name^="DateOfBirth_"]');
 
-    res.status(200).json({ message: 'Inputs logged. Check logs for field names.' });
+    if (!lastNameInput || !ssnInput || !dobInput) {
+      throw new Error('One or more input fields not found.');
+    }
+
+    await lastNameInput.type(lastName);
+    await ssnInput.type(ssn);
+    await dobInput.type(dob);
+
+    // Click the search button by ID
+    await page.evaluate(() => {
+      document.querySelector('#cphTopBand_ctl03_PerformSearch')?.click();
+    });
+
+    await page.waitForTimeout(3000); // wait for results to populate
+
+    const tableHTML = await page.$eval('#grdResults', el => el.outerHTML).catch(() => null);
+    if (!tableHTML) {
+      return res.status(200).json({ message: 'No results found or table missing.' });
+    }
+
+    res.status(200).send(tableHTML);
   } catch (error) {
     console.error('Puppeteer scraping error:', error);
     res.status(500).json({ error: 'Scraping failed. Try again later.' });
