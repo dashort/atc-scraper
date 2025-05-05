@@ -1,4 +1,4 @@
-// server.js (enhanced structured result detection)
+// server.js (enhanced structured result detection with smart wait)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -74,9 +74,14 @@ app.post('/search', async (req, res) => {
       document.querySelector('#cphTopBand_ctl03_PerformSearch')?.click();
     });
 
-    await page.waitForSelector('table.possedetail, .datazone', { timeout: 10000 });
+    // Smart wait for .datazone content to change
+    await page.waitForFunction(() => {
+      const dz = document.querySelector('.datazone');
+      return dz && (dz.innerText.includes('No issued licenses were found') || dz.innerText.includes('RV licenses'));
+    }, { timeout: 15000 });
 
-    const [html, text] = await page.$eval('.datazone', el => [el.innerHTML, el.innerText]).catch(() => [null, null]);
+    const html = await page.$eval('.datazone', el => el.innerHTML).catch(() => null);
+    const text = await page.$eval('.datazone', el => el.innerText).catch(() => null);
 
     if (!html) {
       return res.status(200).json({ status: 'error', message: 'No results container found.' });
