@@ -1,4 +1,4 @@
-// server.js (Puppeteer-Core with system Chromium + full CORS)
+// server.js (with waitForSelector added)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -7,7 +7,6 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// CORS headers for all requests
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -43,6 +42,8 @@ app.post('/search', async (req, res) => {
 
   let browser;
   try {
+    console.log('Launching Puppeteer from:', process.env.PUPPETEER_EXECUTABLE_PATH);
+
     browser = await puppeteer.launch({
       headless: 'new',
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
@@ -52,8 +53,13 @@ app.post('/search', async (req, res) => {
     const page = await browser.newPage();
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
+    await page.waitForSelector('input[name="txtServerLastName"]', { timeout: 10000 });
     await page.type('input[name="txtServerLastName"]', lastName);
+
+    await page.waitForSelector('input[name="txtServerSSN"]', { timeout: 10000 });
     await page.type('input[name="txtServerSSN"]', ssn);
+
+    await page.waitForSelector('input[name="txtServerDOB"]', { timeout: 10000 });
     await page.type('input[name="txtServerDOB"]', dob);
 
     await Promise.all([
