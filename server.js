@@ -1,8 +1,9 @@
-// server.js (with waitForSelector added)
+// server.js (debug HTML + screenshot added)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
 const cors = require('cors');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -52,6 +53,11 @@ app.post('/search', async (req, res) => {
 
     const page = await browser.newPage();
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+
+    // Debug output
+    const pageContent = await page.content();
+    console.log('PAGE HTML:\n', pageContent);
+    await page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
 
     await page.waitForSelector('input[name="txtServerLastName"]', { timeout: 10000 });
     await page.type('input[name="txtServerLastName"]', lastName);
