@@ -1,4 +1,4 @@
-// server.js (flexible wait for result container)
+// server.js (enhanced structured result detection)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -58,10 +58,6 @@ app.post('/search', async (req, res) => {
       return document.body.innerText.includes("Search for Responsible Vendor Licenses");
     }, { timeout: 10000 });
 
-    const pageContent = await page.content();
-    console.log('PAGE HTML:\n', pageContent);
-    await page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
-
     const lastNameInput = await page.$('input[name^="LastName_"]');
     const ssnInput = await page.$('input[name^="Last4SSN_"]');
     const dobInput = await page.$('input[name^="DateOfBirth_"]');
@@ -78,15 +74,19 @@ app.post('/search', async (req, res) => {
       document.querySelector('#cphTopBand_ctl03_PerformSearch')?.click();
     });
 
-    // Wait for results in more flexible containers
     await page.waitForSelector('table.possedetail, .datazone', { timeout: 10000 });
 
-    const html = await page.$eval('.datazone', el => el.innerHTML).catch(() => null);
+    const [html, text] = await page.$eval('.datazone', el => [el.innerHTML, el.innerText]).catch(() => [null, null]);
+
     if (!html) {
-      return res.status(200).json({ message: 'No results found or container missing.' });
+      return res.status(200).json({ status: 'error', message: 'No results container found.' });
     }
 
-    res.status(200).send(html);
+    if (text.includes('No issued licenses were found')) {
+      return res.status(200).json({ status: 'not_found', message: 'No issued licenses were found using your search criteria.' });
+    }
+
+    return res.status(200).json({ status: 'found', html });
   } catch (error) {
     console.error('Puppeteer scraping error:', error);
     res.status(500).json({ error: 'Scraping failed. Try again later.' });
