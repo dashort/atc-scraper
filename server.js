@@ -72,7 +72,8 @@ app.post('/search', async (req, res) => {
     await dobInput.type(dob);
 
     await page.evaluate(() => {
-      document.querySelector('form#aspnetForm')?.submit();
+      const el = document.querySelector('#cphTopBand_ctl03_PerformSearch');
+      if (el) el.click();
     });
 
     // Smart wait for .datazone content to change
