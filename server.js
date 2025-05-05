@@ -49,12 +49,16 @@ app.post('/search', async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+
+    // Wait for form to exist before extracting data
+    await page.waitForSelector('form');
 
     // Grab all form values
     const formData = await page.evaluate(() => {
       const form = document.querySelector('form');
       const data = {};
+      if (!form) throw new Error('Form element not found.');
       new FormData(form).forEach((value, key) => { data[key] = value; });
       return data;
     });
