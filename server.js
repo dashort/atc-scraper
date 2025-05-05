@@ -1,4 +1,4 @@
-// server.js (direct form post version)
+// server.js (simulated DOM interaction version)
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer-core');
@@ -51,54 +51,39 @@ app.post('/search', async (req, res) => {
     const page = await browser.newPage();
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
-    // Wait for form to exist before extracting data
     await page.waitForSelector('form');
 
-    // Grab all form values
-    const formData = await page.evaluate(() => {
-      const form = document.querySelector('form');
-      const data = {};
-      if (!form) throw new Error('Form element not found.');
-      new FormData(form).forEach((value, key) => { data[key] = value; });
-      return data;
+    // Type values into input fields using wildcards
+    await page.evaluate((data) => {
+      function findField(keyPart) {
+        const inputs = [...document.querySelectorAll('input')];
+        const match = inputs.find(input => input.name.includes(keyPart));
+        return match?.name || null;
+      }
+
+      const nameField = findField('LastName_');
+      const ssnField = findField('Last4SSN_');
+      const dobField = findField('DateOfBirth_');
+
+      if (!nameField || !ssnField || !dobField) throw new Error('Field selectors not found.');
+
+      document.querySelector(`[name="${nameField}"]`).value = data.lastName;
+      document.querySelector(`[name="${ssnField}"]`).value = data.ssn;
+      document.querySelector(`[name="${dobField}"]`).value = data.dob;
+
+    }, { lastName, ssn, dob });
+
+    // Click the search button
+    await page.evaluate(() => {
+      const btn = document.querySelector('a[id*="PerformSearch"]');
+      if (!btn) throw new Error('Search button not found.');
+      btn.click();
     });
 
-    // Inject user values
-    const nameField = Object.keys(formData).find(k => k.startsWith('LastName_'));
-    const ssnField = Object.keys(formData).find(k => k.startsWith('Last4SSN_'));
-    const dobField = Object.keys(formData).find(k => k.startsWith('DateOfBirth_'));
-
-    if (!nameField || !ssnField || !dobField) {
-      throw new Error('Unable to locate input field keys.');
-    }
-
-    formData[nameField] = lastName;
-    formData[ssnField] = ssn;
-    formData[dobField] = dob;
-
-    console.log('Submitting values via POST:', { nameField, ssnField, dobField });
-
-    await page.setRequestInterception(true);
-    page.once('request', request => {
-      request.continue({
-        method: 'POST',
-        postData: new URLSearchParams(formData).toString(),
-        headers: {
-          ...request.headers(),
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-    });
-
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-
-    // Wait for content to appear
+    // Wait for result or no-results
     await page.waitForFunction(() => {
       const dz = document.querySelector('.datazone');
-      return dz && (
-        dz.innerText.includes('No issued licenses were found') ||
-        dz.innerText.includes('License Number:')
-      );
+      return dz && (dz.innerText.includes('No issued licenses were found') || dz.innerText.includes('License Number:'));
     }, { timeout: 20000 });
 
     const text = await page.$eval('.datazone', el => el.innerText).catch(() => null);
